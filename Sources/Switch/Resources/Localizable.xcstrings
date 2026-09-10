@@ -3,15 +3,21 @@
   "strings": {
     "Switch": {
       "comment": "Brand name; do not translate",
+      "shouldTranslate": false,
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Switch"
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switch"
+          }
         }
-      },
-      "shouldTranslate": false
+      }
     },
     "General": {
       "comment": "Settings tab",
@@ -331,7 +337,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "粘滞开关"
+            "value": "粘滞模式开关"
           }
         }
       }
@@ -552,7 +558,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "之后可从聚焦或“应用程序”文件夹再次打开。"
+            "value": "之后可随时从聚焦搜索或“应用程序”文件夹再次打开。"
           }
         }
       }
@@ -620,7 +626,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "松开 ⌘ 后选择器保持打开。Return 切换，Esc 取消。"
+            "value": "松开 ⌘ 后选择器保持打开。按 Return 切换，Esc 取消。"
           }
         }
       }
@@ -2850,6 +2856,176 @@
           "stringUnit": {
             "state": "translated",
             "value": "该组合已被 macOS 或常用应用保留。"
+          }
+        }
+      }
+    },
+    "Current Space": {
+      "comment": "Hotkey: windows on current Space only",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Current Space"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前空间"
+          }
+        }
+      }
+    },
+    "Opens the picker in sticky mode, leaving your main hotkeys quick.": {
+      "comment": "Sticky picker hotkey detail",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opens the picker in sticky mode, leaving your main hotkeys quick."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以粘滞模式打开选择器，主快捷键仍可快速点按切换。"
+          }
+        }
+      }
+    },
+    "All windows on the current Space only, whatever the cross-Space setting.": {
+      "comment": "Current Space hotkey detail",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All windows on the current Space only, whatever the cross-Space setting."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅当前空间上的全部窗口，不受跨空间设置影响。"
+          }
+        }
+      }
+    },
+    "Turns sticky mode on or off for the main hotkeys.": {
+      "comment": "Sticky toggle hotkey detail",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turns sticky mode on or off for the main hotkeys."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开或关闭主快捷键的粘滞模式。"
+          }
+        }
+      }
+    },
+    "Show picker on": {
+      "comment": "Picker display preference title",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show picker on"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择器显示于"
+          }
+        }
+      }
+    },
+    "Mouse": {
+      "comment": "Picker display: screen under cursor",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mouse"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "鼠标"
+          }
+        }
+      }
+    },
+    "Active": {
+      "comment": "Picker display: screen with focused window",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Active"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "活动"
+          }
+        }
+      }
+    },
+    "Clear shortcut": {
+      "comment": "Clear hotkey accessibility help",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear shortcut"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除快捷键"
+          }
+        }
+      }
+    },
+    "Main display": {
+      "comment": "Picker display: main/primary display",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Main display"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "主显示器"
+          }
+        }
+      }
+    },
+    "Mouse: the screen under the cursor. Active: the screen with the focused window. Main display: your primary screen.": {
+      "comment": "Picker display preference detail",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mouse: the screen under the cursor. Active: the screen with the focused window. Main display: your primary screen."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "鼠标：光标所在屏幕。活动：有焦点窗口的屏幕。主显示器：你的主显示屏。"
           }
         }
       }

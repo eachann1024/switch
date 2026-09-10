@@ -347,7 +347,7 @@ struct SettingsView: View {
                           $prefs.shiftTapReverses)
                 Divider().opacity(0.4)
                 row(title: "Show picker on",
-                    detail: "Mouse: the screen under the cursor. Active: the screen with the focused window. Primary: your main display.") {
+                    detail: "Mouse: the screen under the cursor. Active: the screen with the focused window. Main display: your primary screen.") {
                     Picker("", selection: $prefs.pickerDisplay) {
                         ForEach(SwitchPreferences.PickerDisplay.allCases) { d in
                             Text(d.label).tag(d)
@@ -669,7 +669,7 @@ struct SettingsView: View {
         .background(rowBackground)
     }
 
-    private func toggleRow(_ title: String, _ detail: String, _ isOn: Binding<Bool>) -> some View {
+    private func toggleRow(_ title: LocalizedStringResource, _ detail: LocalizedStringResource, _ isOn: Binding<Bool>) -> some View {
         row(title: title, detail: detail) {
             Toggle("", isOn: isOn)
                 .labelsHidden().toggleStyle(.switch)
@@ -677,14 +677,14 @@ struct SettingsView: View {
         }
     }
 
-    private func hotkeyRow(_ label: String, rows: [(String, HotkeyConfig.Slot)], detail: String? = nil) -> some View {
+    private func hotkeyRow(_ label: LocalizedStringResource, rows: [(LocalizedStringResource, HotkeyConfig.Slot)], detail: LocalizedStringResource? = nil) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .top, spacing: 12) {
                 Text(label)
                     .font(.system(size: 13, weight: .medium))
                     .frame(width: 100, alignment: .leading)
                 VStack(alignment: .leading, spacing: 6) {
-                    ForEach(rows, id: \.1) { sub in
+                    ForEach(Array(rows.enumerated()), id: \.offset) { _, sub in
                         hotkeyBindingRow(label: sub.0, slot: sub.1)
                     }
                 }
@@ -699,7 +699,7 @@ struct SettingsView: View {
         }
     }
 
-    private func hotkeyBindingRow(label: String, slot: HotkeyConfig.Slot) -> some View {
+    private func hotkeyBindingRow(label: LocalizedStringResource, slot: HotkeyConfig.Slot) -> some View {
         HStack(spacing: 8) {
             Text(label)
                 .font(.system(size: 11))
@@ -718,7 +718,7 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .help(clearHelp)
+                .help(String(localized: "Clear shortcut", comment: "Clear hotkey accessibility help"))
             }
         }
         .frame(height: 28)
@@ -806,7 +806,7 @@ struct PermissionsTabView: View {
                 Button("Open in System Settings", action: action)
                     .controlSize(.small)
             } else {
-                Text("Granted").font(.system(size: 11)).foregroundStyle(.tertiary)
+                Text("Granted", comment: "Permission granted label").font(.system(size: 11)).foregroundStyle(.tertiary)
             }
         }
         .padding(14)

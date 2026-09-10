@@ -41,11 +41,11 @@ final class SwitchPreferences: ObservableObject {
     enum PickerDisplay: String, CaseIterable, Identifiable {
         case mouse, active, primary
         var id: String { rawValue }
-        var label: String {
+        var label: LocalizedStringResource {
             switch self {
-            case .mouse: return "Mouse"
-            case .active: return "Active"
-            case .primary: return "Primary"
+            case .mouse: "Mouse"
+            case .active: "Active"
+            case .primary: "Main display"
             }
         }
     }
