@@ -16,6 +16,11 @@ final class SwitchModel: ObservableObject {
     private var armReverse = false
     /// Quartz bounds of the picker display for this invocation; pinned at arm so refreshes stay stable.
     private var pinnedDisplayBounds: CGRect?
+    /// Current Space of the picker display, pinned at arm so a later refresh
+    /// does not jump if the cursor moves or that display switches Spaces.
+    private var pinnedSpaceID: Int?
+    /// Quartz bounds used only as a fallback when a window has no Space assignment.
+    private var pinnedSpaceDisplayBounds: CGRect?
 
     /// Set by AppDelegate so the view can request a commit + window dismiss from a mouse click.
     var commitAndDismiss: (() -> Void)?
@@ -70,9 +75,19 @@ final class SwitchModel: ObservableObject {
         currentSpaceOnly = style.currentSpaceOnly
         armReverse = style.reverse
         pinnedDisplayBounds = nil
-        if SwitchPreferences.shared.showCurrentDisplayOnly,
-           let screen = SwitchPreferences.shared.pickerScreen() {
-            pinnedDisplayBounds = WindowEnumerator.quartzBounds(of: screen)
+        pinnedSpaceID = nil
+        pinnedSpaceDisplayBounds = nil
+        if let screen = SwitchPreferences.shared.pickerScreen() {
+            let bounds = WindowEnumerator.quartzBounds(of: screen)
+            if SwitchPreferences.shared.showCurrentDisplayOnly {
+                pinnedDisplayBounds = bounds
+            }
+            // Current Space (and showCrossSpace=false) must pin the picker
+            // display's Space, not the union of every monitor's current Space.
+            if currentSpaceOnly || !SwitchPreferences.shared.showCrossSpace {
+                pinnedSpaceID = WindowEnumerator.currentSpaceID(for: screen)
+                pinnedSpaceDisplayBounds = bounds
+            }
         }
         quitPIDs.removeAll()
         filterText = ""
@@ -199,6 +214,7 @@ final class SwitchModel: ObservableObject {
         }
         if !SwitchPreferences.shared.showCrossSpace || currentSpaceOnly {
             cross = cross.filter { !$0.isCrossSpace }
+            applyPickerSpaceFilter(&active, &cross)
         }
         if let displayBounds = currentDisplayBoundsIfFiltering() {
             active.removeAll { !WindowEnumerator.intersectsDisplay($0, displayBounds) }
@@ -230,9 +246,11 @@ final class SwitchModel: ObservableObject {
             ws = WindowMRU.sorted(active, frontmost: activeFront) + WindowMRU.sorted(cross, frontmost: nil)
         }
         var final = ws
-        // Windowless extras have no on-screen frame; omit them when the display filter is on.
+        // Windowless extras have no Space and no frame; omit them when either
+        // the display filter or Current Space mode is on.
         if SwitchPreferences.shared.includeWindowlessApps && mode == .allWindows
-            && !SwitchPreferences.shared.showCurrentDisplayOnly {
+            && !SwitchPreferences.shared.showCurrentDisplayOnly
+            && !currentSpaceOnly {
             let switchablePIDs = full.allPIDs
             let ownBundle = Bundle.main.bundleIdentifier
             let extras = NSWorkspace.shared.runningApplications
@@ -268,6 +286,27 @@ final class SwitchModel: ObservableObject {
         if let pinnedDisplayBounds { return pinnedDisplayBounds }
         guard let screen = SwitchPreferences.shared.pickerScreen() else { return nil }
         return WindowEnumerator.quartzBounds(of: screen)
+    }
+
+    /// Restrict to the current Space of the display the picker appears on.
+    /// `isCrossSpace` is computed against every display's current Space, so
+    /// on-screen windows on another monitor stay in `active` unless we filter
+    /// by that display's Space id (Sanyam-G/switch#129, #155).
+    private func applyPickerSpaceFilter(_ active: inout [WindowInfo], _ cross: inout [WindowInfo]) {
+        let spaceID = pinnedSpaceID
+            ?? SwitchPreferences.shared.pickerScreen().flatMap { WindowEnumerator.currentSpaceID(for: $0) }
+        let bounds = pinnedSpaceDisplayBounds
+            ?? SwitchPreferences.shared.pickerScreen().map { WindowEnumerator.quartzBounds(of: $0) }
+        if let spaceID {
+            active.removeAll { !WindowEnumerator.belongsToSpace($0, spaceID: spaceID, displayBounds: bounds) }
+            cross.removeAll { !WindowEnumerator.belongsToSpace($0, spaceID: spaceID, displayBounds: bounds) }
+            return
+        }
+        // UUID / CGS metadata miss: still drop other-monitor on-screen windows.
+        if let bounds {
+            active.removeAll { !WindowEnumerator.intersectsDisplay($0, bounds) }
+            cross.removeAll { !WindowEnumerator.intersectsDisplay($0, bounds) }
+        }
     }
 
     func closeSelected() {
@@ -447,6 +486,8 @@ final class SwitchModel: ObservableObject {
         thumbnails = [:]
         filterText = ""
         pinnedDisplayBounds = nil
+        pinnedSpaceID = nil
+        pinnedSpaceDisplayBounds = nil
         stopRefreshTimer()
         thumbnailTasks.forEach { $0.cancel() }
         thumbnailTasks = []

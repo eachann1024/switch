@@ -9,6 +9,9 @@ struct WindowInfo: Identifiable, Hashable {
     let bounds: CGRect
     var title: String
     var spaceID: Int?
+    /// Every Space `CGSCopySpacesForWindows` reports. A window that joins all
+    /// Spaces lists each membership; `spaceID` stays the first for labels.
+    var spaceIDs: Set<Int> = []
     var isCrossSpace: Bool = false
     var isMinimized: Bool = false
     var isHidden: Bool = false
@@ -72,6 +75,82 @@ enum WindowEnumerator {
     /// (windowless app rows) never match.
     static func intersectsDisplay(_ window: WindowInfo, _ displayBounds: CGRect) -> Bool {
         !window.bounds.isEmpty && window.bounds.intersects(displayBounds)
+    }
+
+    /// Quartz UUID of `screen`, matching `CGSCopyManagedDisplaySpaces` identifiers.
+    static func displayUUID(of screen: NSScreen) -> String? {
+        let key = NSDeviceDescriptionKey("NSScreenNumber")
+        guard let number = screen.deviceDescription[key] as? NSNumber else { return nil }
+        guard let uuid = CGDisplayCreateUUIDFromDisplayID(CGDirectDisplayID(number.uint32Value))?.takeRetainedValue() else {
+            return nil
+        }
+        return CFUUIDCreateString(nil, uuid) as String
+    }
+
+    /// Mission Control Space currently shown on `screen`. Each display has its
+    /// own current Space; `spaceMetadata.currentSpaces` is the union across
+    /// every monitor and is the wrong target for Current Space mode.
+    static func currentSpaceID(for screen: NSScreen) -> Int? {
+        let cid = CGSMainConnectionID()
+        if let uuid = displayUUID(of: screen) {
+            let sid = Int(CGSManagedDisplayGetCurrentSpace(cid, uuid as CFString))
+            if sid != 0 { return sid }
+            if isPrimaryDisplay(screen) {
+                let main = Int(CGSManagedDisplayGetCurrentSpace(cid, "Main" as CFString))
+                if main != 0 { return main }
+            }
+        }
+        return currentSpaceIDFromManagedDisplays(for: screen, cid: cid)
+    }
+
+    /// True when `window` belongs to `spaceID`. Unassigned windows (empty CGS
+    /// list on older macOS, Stage Manager off-stage) fall back to intersecting
+    /// the picker display so another monitor's on-screen windows don't leak.
+    /// Empty frames with no Space stay (they already count as current).
+    static func belongsToSpace(_ window: WindowInfo, spaceID: Int, displayBounds: CGRect?) -> Bool {
+        if !window.spaceIDs.isEmpty {
+            return window.spaceIDs.contains(spaceID)
+        }
+        if let sid = window.spaceID {
+            return sid == spaceID
+        }
+        if let displayBounds {
+            if intersectsDisplay(window, displayBounds) { return true }
+            return window.bounds.isEmpty && !window.isWindowless
+        }
+        return true
+    }
+
+    private static func isPrimaryDisplay(_ screen: NSScreen) -> Bool {
+        let key = NSDeviceDescriptionKey("NSScreenNumber")
+        if let number = screen.deviceDescription[key] as? NSNumber {
+            return CGDirectDisplayID(number.uint32Value) == CGMainDisplayID()
+        }
+        return screen == NSScreen.screens.first
+    }
+
+    private static func currentSpaceIDFromManagedDisplays(for screen: NSScreen, cid: CGSConnectionID) -> Int? {
+        guard let displays = CGSCopyManagedDisplaySpaces(cid)?.takeRetainedValue() as? [[String: Any]] else {
+            return nil
+        }
+        let uuid = displayUUID(of: screen)?.lowercased()
+        let isPrimary = isPrimaryDisplay(screen)
+        func spaceID(from display: [String: Any]) -> Int? {
+            (display["Current Space"] as? [String: Any])?["id64"] as? Int
+        }
+        for display in displays {
+            let ident = (display["Display Identifier"] as? String)?.lowercased()
+            let managed = ((display["Current Space"] as? [String: Any])?["ManagedDisplay"] as? String)?.lowercased()
+            let uuidMatch = uuid != nil && (ident == uuid || managed == uuid)
+            let mainMatch = isPrimary && (ident == "main" || managed == "main")
+            if (uuidMatch || mainMatch), let id = spaceID(from: display) {
+                return id
+            }
+        }
+        if displays.count == 1, let id = spaceID(from: displays[0]) {
+            return id
+        }
+        return nil
     }
 
     // Ghost-confirmation state. Every access takes `ghostLock`; sweeps run on a
@@ -149,8 +228,21 @@ enum WindowEnumerator {
         }
         let annotatedAll = annotateAndPrune(marked, ax: ax, cid: cid, metadata: metadata, stageManager: stageManager, titlesReliable: titlesReliable)
         // After annotateAndPrune on purpose: ghost detection keys on the CG title (#111).
-        let titledActive = backfillTitles(active, from: ax.titles)
         let titledAll = backfillTitles(annotatedAll, from: ax.titles)
+        // activeSpace is built from CGWindowList on-screen, which skips
+        // annotateAndPrune. Copy Space membership so Current Space can tell
+        // this display's Space from every other monitor's current Space.
+        let annotatedByID = Dictionary(uniqueKeysWithValues: titledAll.map { ($0.id, $0) })
+        let titledActive = backfillTitles(active, from: ax.titles).map { w -> WindowInfo in
+            guard let src = annotatedByID[w.id] else { return w }
+            var out = w
+            out.spaceID = src.spaceID
+            out.spaceIDs = src.spaceIDs
+            out.spaceLabel = src.spaceLabel
+            out.isFullscreenSpace = src.isFullscreenSpace
+            if src.isMinimized { out.isMinimized = true }
+            return out
+        }
         let onScreenIDs = Set(onScreen.map(\.id))
         housekeepGhostState(
             onScreen: onScreenIDs,
@@ -252,12 +344,7 @@ enum WindowEnumerator {
                 // Same real-window signature as the cross-Space prune below, for windows hidden before Switch ever saw them.
                 let offSpaceReal = out.isCrossSpace && (!titlesReliable || !w.title.isEmpty)
                 guard everBacked || offSpaceReal else { return nil }
-                if let sid = spaces.first {
-                    let info = metadata.labels[sid]
-                    out.spaceID = sid
-                    out.spaceLabel = info?.label
-                    out.isFullscreenSpace = info?.isFullscreen ?? false
-                }
+                applySpaceMembership(&out, spaces: spaces, metadata: metadata)
                 return out
             }
             if spaces.isEmpty {
@@ -290,13 +377,24 @@ enum WindowEnumerator {
                     clearGhostStrike(w.id)
                 }
             }
-            if let sid = spaces.first {
-                let info = metadata.labels[sid]
-                out.spaceID = sid
-                out.spaceLabel = info?.label
-                out.isFullscreenSpace = info?.isFullscreen ?? false
-            }
+            applySpaceMembership(&out, spaces: spaces, metadata: metadata)
             return out
+        }
+    }
+
+    private static func applySpaceMembership(
+        _ out: inout WindowInfo,
+        spaces: [Int],
+        metadata: (labels: [Int: (label: String, isFullscreen: Bool)], order: [Int], currentSpaces: Set<Int>)
+    ) {
+        out.spaceIDs = Set(spaces)
+        // Prefer a current Space for the label so a join-all window is tagged
+        // as current rather than an arbitrary first membership.
+        if let sid = spaces.first(where: { metadata.currentSpaces.contains($0) }) ?? spaces.first {
+            let info = metadata.labels[sid]
+            out.spaceID = sid
+            out.spaceLabel = info?.label
+            out.isFullscreenSpace = info?.isFullscreen ?? false
         }
     }
 
@@ -322,6 +420,7 @@ enum WindowEnumerator {
                 bounds: target.bounds,
                 title: detail,
                 spaceID: sid,
+                spaceIDs: [sid],
                 isCrossSpace: sid != active,
                 isMinimized: false,
                 isHidden: false,

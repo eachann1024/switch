@@ -151,7 +151,7 @@ struct SettingsView: View {
                         hotkeyRow("Sticky picker", rows: [("All windows", .allWindowsSticky), ("Current app", .currentAppSticky)],
                                   detail: "Opens the picker in sticky mode, leaving your main hotkeys quick.")
                         hotkeyRow("Current Space", rows: [("Primary", .currentSpace)],
-                                  detail: "All windows on the current Space only, whatever the cross-Space setting.")
+                                  detail: "All windows on the current Space of the display the picker is on, whatever the cross-Space setting.")
                         hotkeyRow("Sticky toggle", rows: [("Primary", .stickyToggle)],
                                   detail: "Turns sticky mode on or off for the main hotkeys.")
                         if let msg = rejectMessage {
