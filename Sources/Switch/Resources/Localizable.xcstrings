@@ -2894,19 +2894,19 @@
         }
       }
     },
-    "All windows on the current Space only, whatever the cross-Space setting.": {
+    "All windows on the current Space of the display the picker is on, whatever the cross-Space setting.": {
       "comment": "Current Space hotkey detail",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "All windows on the current Space only, whatever the cross-Space setting."
+            "value": "All windows on the current Space of the display the picker is on, whatever the cross-Space setting."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "仅当前空间上的全部窗口，不受跨空间设置影响。"
+            "value": "仅选择器所在屏幕的当前空间窗口，不受跨空间设置影响。"
           }
         }
       }

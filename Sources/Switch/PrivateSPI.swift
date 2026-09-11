@@ -13,6 +13,11 @@ func CGSMainConnectionID() -> CGSConnectionID
 @_silgen_name("CGSGetActiveSpace")
 func CGSGetActiveSpace(_ cid: CGSConnectionID) -> CGSSpaceID
 
+/// Current Mission Control Space of one managed display (UUID from
+/// `CGDisplayCreateUUIDFromDisplayID`, or the `"Main"` identifier).
+@_silgen_name("CGSManagedDisplayGetCurrentSpace")
+func CGSManagedDisplayGetCurrentSpace(_ cid: CGSConnectionID, _ displayUUID: CFString) -> CGSSpaceID
+
 @_silgen_name("CGSMoveWindowsToManagedSpace")
 func CGSMoveWindowsToManagedSpace(_ cid: CGSConnectionID, _ windowIDs: CFArray, _ toSpace: CGSSpaceID)
 
