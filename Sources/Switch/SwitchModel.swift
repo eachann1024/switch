@@ -14,6 +14,8 @@ final class SwitchModel: ObservableObject {
     @Published var stickySession = false
     private var currentSpaceOnly = false
     private var armReverse = false
+    /// Quartz bounds of the picker display for this invocation; pinned at arm so refreshes stay stable.
+    private var pinnedDisplayBounds: CGRect?
 
     /// Set by AppDelegate so the view can request a commit + window dismiss from a mouse click.
     var commitAndDismiss: (() -> Void)?
@@ -67,6 +69,11 @@ final class SwitchModel: ObservableObject {
         stickySession = style.sticky
         currentSpaceOnly = style.currentSpaceOnly
         armReverse = style.reverse
+        pinnedDisplayBounds = nil
+        if SwitchPreferences.shared.showCurrentDisplayOnly,
+           let screen = SwitchPreferences.shared.pickerScreen() {
+            pinnedDisplayBounds = WindowEnumerator.quartzBounds(of: screen)
+        }
         quitPIDs.removeAll()
         filterText = ""
         pointerWindowID = nil
@@ -96,12 +103,24 @@ final class SwitchModel: ObservableObject {
         let final: [WindowInfo]
         if mode == .spaces {
             let active = Int(CGSGetActiveSpace(CGSMainConnectionID()))
-            final = snapshot.windows.spaceRepresentatives.map { rep in
+            var reps = snapshot.windows.spaceRepresentatives.map { rep in
                 var out = rep
                 out.isCrossSpace = out.spaceID != active
                 out.spaceLabel = out.spaceID == active ? "Current" : nil
                 return out
             }
+            if let displayBounds = currentDisplayBoundsIfFiltering() {
+                let spaceIDs = Set(
+                    snapshot.windows.allWindows
+                        .filter { WindowEnumerator.intersectsDisplay($0, displayBounds) }
+                        .compactMap(\.spaceID)
+                )
+                reps.removeAll { rep in
+                    guard let sid = rep.spaceID else { return true }
+                    return !spaceIDs.contains(sid)
+                }
+            }
+            final = reps
         } else {
             final = buildWindowList(from: snapshot.windows)
         }
@@ -181,6 +200,10 @@ final class SwitchModel: ObservableObject {
         if !SwitchPreferences.shared.showCrossSpace || currentSpaceOnly {
             cross = cross.filter { !$0.isCrossSpace }
         }
+        if let displayBounds = currentDisplayBoundsIfFiltering() {
+            active.removeAll { !WindowEnumerator.intersectsDisplay($0, displayBounds) }
+            cross.removeAll { !WindowEnumerator.intersectsDisplay($0, displayBounds) }
+        }
         let activeFront = WindowMRU.mostRecent(in: active) ?? active.first
         let ws: [WindowInfo]
         if SwitchPreferences.shared.staticOrder {
@@ -207,7 +230,9 @@ final class SwitchModel: ObservableObject {
             ws = WindowMRU.sorted(active, frontmost: activeFront) + WindowMRU.sorted(cross, frontmost: nil)
         }
         var final = ws
-        if SwitchPreferences.shared.includeWindowlessApps && mode == .allWindows {
+        // Windowless extras have no on-screen frame; omit them when the display filter is on.
+        if SwitchPreferences.shared.includeWindowlessApps && mode == .allWindows
+            && !SwitchPreferences.shared.showCurrentDisplayOnly {
             let switchablePIDs = full.allPIDs
             let ownBundle = Bundle.main.bundleIdentifier
             let extras = NSWorkspace.shared.runningApplications
@@ -235,6 +260,11 @@ final class SwitchModel: ObservableObject {
             }
         }
         return final
+    }
+
+    /// Quartz bounds of the picker display when “current display only” is on.
+    private func currentDisplayBoundsIfFiltering() -> CGRect? {
+        pinnedDisplayBounds
     }
 
     func closeSelected() {
@@ -413,6 +443,7 @@ final class SwitchModel: ObservableObject {
         windows = []
         thumbnails = [:]
         filterText = ""
+        pinnedDisplayBounds = nil
         stopRefreshTimer()
         thumbnailTasks.forEach { $0.cancel() }
         thumbnailTasks = []
