@@ -357,6 +357,10 @@ struct SettingsView: View {
                     .labelsHidden()
                     .frame(width: 190)
                 }
+                Divider().opacity(0.4)
+                toggleRow("Only windows on current display",
+                          "On multiple displays, list only windows whose frames intersect the screen where the picker is shown. Uses the same display as Show picker on.",
+                          $prefs.showCurrentDisplayOnly)
             }
         }
     }

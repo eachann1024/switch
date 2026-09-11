@@ -3029,6 +3029,40 @@
           }
         }
       }
+    },
+    "Only windows on current display": {
+      "comment": "Settings row",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only windows on current display"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅显示当前屏幕的窗口"
+          }
+        }
+      }
+    },
+    "On multiple displays, list only windows whose frames intersect the screen where the picker is shown. Uses the same display as Show picker on.": {
+      "comment": "Settings row detail",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On multiple displays, list only windows whose frames intersect the screen where the picker is shown. Uses the same display as Show picker on."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "多显示器时，仅列出与选择器所在屏幕相交的窗口（与「选择器显示于」使用同一块屏幕）。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

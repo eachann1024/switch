@@ -55,6 +55,25 @@ enum WindowEnumerator {
         var allPIDs: Set<pid_t> { Set(allWindows.map(\.pid)) }
     }
 
+    /// Quartz-space frame of `screen`, matching `kCGWindowBounds` (origin at the
+    /// top-left of the main display). Do not compare against `NSScreen.frame`,
+    /// which uses a bottom-left Cocoa origin.
+    static func quartzBounds(of screen: NSScreen) -> CGRect {
+        let key = NSDeviceDescriptionKey("NSScreenNumber")
+        if let number = screen.deviceDescription[key] as? NSNumber {
+            return CGDisplayBounds(CGDirectDisplayID(number.uint32Value))
+        }
+        let primaryHeight = NSScreen.screens.first?.frame.height ?? screen.frame.height
+        let f = screen.frame
+        return CGRect(x: f.minX, y: primaryHeight - f.maxY, width: f.width, height: f.height)
+    }
+
+    /// True when the window's CG frame intersects `displayBounds`. Empty frames
+    /// (windowless app rows) never match.
+    static func intersectsDisplay(_ window: WindowInfo, _ displayBounds: CGRect) -> Bool {
+        !window.bounds.isEmpty && window.bounds.intersects(displayBounds)
+    }
+
     // Ghost-confirmation state. Every access takes `ghostLock`; sweeps run on a
     // background queue and noteSwitchMovedWindow is called from the focus path.
     private static let ghostLock = NSLock()
