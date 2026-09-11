@@ -264,7 +264,10 @@ final class SwitchModel: ObservableObject {
 
     /// Quartz bounds of the picker display when “current display only” is on.
     private func currentDisplayBoundsIfFiltering() -> CGRect? {
-        pinnedDisplayBounds
+        guard SwitchPreferences.shared.showCurrentDisplayOnly else { return nil }
+        if let pinnedDisplayBounds { return pinnedDisplayBounds }
+        guard let screen = SwitchPreferences.shared.pickerScreen() else { return nil }
+        return WindowEnumerator.quartzBounds(of: screen)
     }
 
     func closeSelected() {
