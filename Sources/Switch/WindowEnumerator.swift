@@ -106,6 +106,7 @@ enum WindowEnumerator {
     /// True when `window` belongs to `spaceID`. Unassigned windows (empty CGS
     /// list on older macOS, Stage Manager off-stage) fall back to intersecting
     /// the picker display so another monitor's on-screen windows don't leak.
+    /// Empty frames with no Space stay (they already count as current).
     static func belongsToSpace(_ window: WindowInfo, spaceID: Int, displayBounds: CGRect?) -> Bool {
         if !window.spaceIDs.isEmpty {
             return window.spaceIDs.contains(spaceID)
@@ -114,7 +115,8 @@ enum WindowEnumerator {
             return sid == spaceID
         }
         if let displayBounds {
-            return intersectsDisplay(window, displayBounds)
+            if intersectsDisplay(window, displayBounds) { return true }
+            return window.bounds.isEmpty && !window.isWindowless
         }
         return true
     }
